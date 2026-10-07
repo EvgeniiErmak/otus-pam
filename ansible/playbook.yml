@@ -1,0 +1,95 @@
+---
+- name: PAM — запрет входа в выходные + доступ к Docker
+  hosts: all
+  become: true
+  vars:
+    users_password: "Otus2022!"
+    new_users: [otus, otusadm]
+    admin_members: [otusadm, root, vagrant]
+    docker_user: otus
+    vm_proxy: ""
+
+  tasks:
+    - name: Прокси для apt (только если задан VM_PROXY)
+      ansible.builtin.copy:
+        dest: /etc/apt/apt.conf.d/95proxy
+        mode: "0644"
+        content: |
+          Acquire::http::Proxy "{{ vm_proxy }}";
+          Acquire::https::Proxy "{{ vm_proxy }}";
+      when: vm_proxy | length > 0
+
+    - name: Установить docker.io и polkit
+      ansible.builtin.apt:
+        name: [docker.io, policykit-1]
+        state: present
+        update_cache: true
+
+    # ---------- Задание 1: PAM ----------
+    - name: Создать группу admin
+      ansible.builtin.group:
+        name: admin
+        state: present
+
+    - name: Создать пользователей otus и otusadm
+      ansible.builtin.user:
+        name: "{{ item }}"
+        shell: /bin/bash
+        create_home: true
+      loop: "{{ new_users }}"
+
+    - name: Задать пароли пользователям
+      ansible.builtin.shell: "echo '{{ item }}:{{ users_password }}' | chpasswd"
+      loop: "{{ new_users }}"
+      changed_when: true
+
+    - name: Добавить otusadm, root, vagrant в группу admin
+      ansible.builtin.user:
+        name: "{{ item }}"
+        groups: admin
+        append: true
+      loop: "{{ admin_members }}"
+
+    - name: Скрипт проверки входа
+      ansible.builtin.copy:
+        src: files/login.sh
+        dest: /usr/local/bin/login.sh
+        mode: "0755"
+
+    - name: Список праздничных дней
+      ansible.builtin.copy:
+        src: files/pam_holidays
+        dest: /etc/pam_holidays
+        mode: "0644"
+
+    - name: Подключить pam_exec в /etc/pam.d/sshd
+      ansible.builtin.lineinfile:
+        path: /etc/pam.d/sshd
+        line: "account    required     pam_exec.so debug /usr/local/bin/login.sh"
+        insertafter: '^@include common-account'
+
+    # ---------- Задание 2*: Docker ----------
+    - name: Добавить {{ docker_user }} в группу docker
+      ansible.builtin.user:
+        name: "{{ docker_user }}"
+        groups: docker
+        append: true
+
+    - name: Запустить Docker
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Polkit — разрешить {{ docker_user }} управлять юнитами systemd
+      ansible.builtin.copy:
+        src: files/10-docker-restart.pkla
+        dest: /etc/polkit-1/localauthority/50-local.d/10-docker-restart.pkla
+        mode: "0644"
+      notify: restart polkit
+
+  handlers:
+    - name: restart polkit
+      ansible.builtin.service:
+        name: polkit
+        state: restarted
