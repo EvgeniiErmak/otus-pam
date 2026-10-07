@@ -35,8 +35,6 @@ install kvm_amd /bin/false
 install kvm /bin/false
 ~~~
 
-![kvm](screenshots/00_kvm_unload.png)
-
 ## Развёртывание
 
 ~~~bash
@@ -51,8 +49,6 @@ vagrant up
 PLAY RECAP *****************************************************************
 pam    : ok=13   changed=10   unreachable=0    failed=0    skipped=1
 ~~~
-
-![vagrant up](screenshots/01_vagrant_up.png)
 
 ## Задание 1. Запрет входа в выходные (PAM)
 
@@ -88,8 +84,6 @@ usepam yes
 passwordauthentication yes
 ~~~
 
-![users](screenshots/02_users_groups_pam.png)
-
 ### Будний день (среда 07.10.2026) — otus входит
 
 ~~~
@@ -99,8 +93,6 @@ otus
 Wed Oct  7 14:44:42 UTC 2026
 3
 ~~~
-
-![weekday](screenshots/03_weekday_otus_ok.png)
 
 ### Суббота 10.10.2026 — otus запрещён, otusadm разрешён
 
@@ -119,8 +111,6 @@ otus@192.168.57.10's password:
 Connection closed by 192.168.57.10 port 22
 ~~~
 
-![otus denied](screenshots/04_saturday_otus_denied.png)
-
 ~~~
 otusadm@pam:~$ hostname; whoami; id; date
 pam
@@ -129,16 +119,12 @@ uid=1003(otusadm) gid=1003(otusadm) groups=1003(otusadm),117(admin)
 Sat Oct 10 12:02:39 UTC 2026
 ~~~
 
-![otusadm ok](screenshots/05_saturday_otusadm_ok.png)
-
 Лог PAM:
 
 ~~~
 root@pam:~# grep pam_exec /var/log/auth.log | tail
 Oct 10 12:01:08 ... sshd[4131]: pam_exec(sshd:account): /usr/local/bin/login.sh failed: exit code 1
 ~~~
-
-![auth.log](screenshots/06_auth_log.png)
 
 ### Суббота 09.05.2026 (праздник) — otus входит
 
@@ -153,8 +139,6 @@ otus
 Sat May  9 12:01:08 UTC 2026
 6
 ~~~
-
-![holiday](screenshots/07_holiday_otus_ok.png)
 
 Возврат времени:
 
@@ -180,8 +164,6 @@ ActiveEnterTimestamp=Wed 2026-10-07 15:09:09 UTC
 active
 ~~~
 
-![docker otus](screenshots/08_docker_otus.png)
-
 ### otusadm — доступа нет
 
 ~~~
@@ -189,8 +171,6 @@ uid=1003(otusadm) gid=1003(otusadm) groups=1003(otusadm),117(admin)
 permission denied while trying to connect to the docker API at unix:///var/run/docker.sock
 Failed to restart docker.service: Interactive authentication required.
 ~~~
-
-![docker otusadm](screenshots/09_docker_otusadm_denied.png)
 
 ## Особенности реализации и заметки
 
@@ -204,6 +184,3 @@ Failed to restart docker.service: Interactive authentication required.
 - **Тест с подменой даты** требует остановить `systemd-timesyncd` и `vboxadd-service`, иначе время вернётся.
 - **Терминал kitty** — в ВМ неизвестен тип `xterm-kitty`, нужно `export TERM=xterm-256color`.
 
-## Скриншот репозитория
-
-![github](screenshots/10_github_repo.png)
